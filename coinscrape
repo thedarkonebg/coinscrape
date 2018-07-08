@@ -1,0 +1,187 @@
+function coinscrape( ticker, data ) {
+
+  // cell - ticker name
+  // id - the URL for the API call
+  // jsonData - Response of the API as an Object
+  // jsonString - a string containing JSON stats object
+
+  var cell = ticker;
+  var id = "https://tokenstats.io/api/v1/roi?symbol="+cell;
+  var jsonData = UrlFetchApp.fetch(id);
+  var jsonString = jsonData.getContentText();
+  
+  // Check for empty cells
+  
+  if (ticker == ""){
+    return ""
+  } else if (data == ""){
+    return ""
+  }
+  
+  // Parse JSON stats object to an array
+  
+  try{
+    var stats = JSON.parse(jsonString);
+  } 
+    catch(err)
+  {
+    return "N/A"
+  }
+  
+  // Filter data by parameter
+  
+  switch (data){ 
+    //Market Cap
+    case "mcap": 
+      return stats.market_cap_usd;
+      break;
+      
+    // ROI in USD  
+    case "roiusd": 
+      return stats.roix_usd;
+      break;
+      
+    // ROI in BTC
+    case "roibtc":  
+      return stats.roix_btc;
+      break;
+    
+    // ROI in ETH
+    case "roieth":  
+      return stats.roix_eth;
+      break;
+      
+    // ROI average (USD, BTC and ETH)  
+    case "roiavg":
+      var temp = (Number(stats.roix_eth)+Number(stats.roix_btc)+Number(stats.roix_usd));
+      temp = temp/3;
+      return temp;
+      break;
+    
+    // Country of origin
+    case "country":
+      return stats.country;
+      break;
+    
+    // ICO start date
+    case "start":
+      return stats.ico_start_date;
+      break;
+    
+    // ICO end date
+    case "end":
+      return stats.ico_end_date;
+      break;
+    
+    // ICO funds raised in USD
+    case "raised_usd":
+      return stats.raised_usd;
+      break;
+      
+    // Circulating Supply
+     case "supply_circ":
+      return stats.available_supply;
+      break;   
+    
+    // Total Supply
+     case "supply_total":
+      return stats.total_supply;
+      break;
+      
+    // Current Price in USD
+     case "price_usd":
+      return stats.current_usd_price;
+      break;
+      
+    // Current Price in BTC
+     case "price_btc":
+      return stats.current_btc_price;
+      break;
+      
+    // Current Price in ETH
+     case "price_eth":
+      return stats.current_eth_price;
+      break;
+      
+    // Type of token
+     case "token_type":
+      return stats.type;
+      break;   
+      
+    // Description of the token
+     case "description":
+      return stats.description;
+      break;
+      
+    // Coinmarketcap  ID
+     case "cmc_id":
+      return stats.cmc_id;
+      break;
+      
+    // Launch price in USD
+     case "price_launch_usd":
+      return stats.usd_price_at_launch;
+      break;
+      
+    // Launch price in BTC
+     case "price_launch_btc":
+      return stats.btc_price_at_launch;
+      break;
+      
+    // Launch price in ETH
+     case "price_launch_eth":
+      return stats.eth_price_at_launch;
+      break;  
+      
+    // Name of the token
+     case "name":
+      return stats.name;
+      break;
+      
+    // COINMARKETCAP FUNCTIONS 
+    
+    // GET 7 DAYS CHANGE
+     case "cmc_change_7d":
+     return cmc(stats.cmc_id, data);
+     break; 
+     
+    // GET CMC RANK
+     case "cmc_rank":
+     return cmc(stats.cmc_id, data);
+     break;
+  }
+}
+
+// EXTRACT DATA FROM COINMARKETCAP API
+
+function cmc(id, param) {
+  var id = id;
+  var cmc_id = "https://api.coinmarketcap.com/v2/ticker/";
+  var cmcData = UrlFetchApp.fetch(cmc_id);
+  var cmcString = cmcData.getContentText();
+
+  // Parse JSON stats object to an array
+  
+  try{
+    var cmc_stats = JSON.parse(cmcString);
+  } 
+    catch(err)
+  {
+    return "N/A"
+  }
+
+  // Check the id
+  switch(param){
+  
+  // 7 DAYS CHANGE
+  case "cmc_change_7d":
+  return cmc_stats.data[id].quotes.USD.percent_change_7d;
+  break;
+  
+  // CMC RANK
+  case "cmc_rank":
+  return cmc_stats.data[id].rank;
+  break;  
+
+  }
+}
