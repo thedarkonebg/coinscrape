@@ -1,0 +1,142 @@
+function onInstall(e) {
+  onOpen();
+}
+
+function onOpen() {
+  deleteAllProperties();
+  var temp_time = new Date();
+  var time_now = Math.floor((temp_time.getTime()/1000)).toString();
+  if (checkTimestamp(time_now) = true){
+    checkCache();
+  } else {
+    deleteAllProperties();
+    checkCache();
+    PropertiesService.getScriptProperties().setProperty("timestamp", time_now);  
+  }
+  
+  ScriptApp.newTrigger('renew')
+      .timeBased()
+      .everyHours(1)
+      .create();
+}
+
+function renew(){
+  var cache = CacheService.getScriptCache();
+  cache.remove("cmc_cache");
+  checkCache();
+}
+
+function checkCache(){
+  var cache = CacheService.getScriptCache();
+  var cmc_cache = cache.get("cmc_cache");
+  if (cmc_cache === null){
+    var cmc_fetch = UrlFetchApp.fetch("https://s2.coinmarketcap.com/generated/search/quick_search.json");
+    var temp_string = cmc_fetch.getContentText();
+    var newArray = array(temp_string)
+    cache.put("cmc_cache", JSON.stringify(newArray));
+  return;
+  }
+}
+
+function deleteAllProperties(){
+  var cache = CacheService.getScriptCache();
+  
+  PropertiesService.getScriptProperties().deleteAllProperties();
+  Utilities.sleep(250);
+}
+
+function array(temp){
+  temp = JSON.parse(temp);
+  var array = [];
+  for (var i = 0; i<temp.length; i++){
+    array[i] = {
+      symbol: temp[i].symbol,
+      id: temp[i].id
+    }
+  }
+  return array;
+}
+
+function checkTimestamp(time_now){
+  var temp_time = new Date();
+  var timestamp = PropertiesService.getScriptProperties().getProperty("timestamp");
+  if (timestamp == null){
+  deleteAllProperties();
+  PropertiesService.getScriptProperties().setProperty("timestamp", time_now);
+  return true;
+  }
+  if (time_now - timestamp > 3600){
+    deleteAllProperties();
+    PropertiesService.getScriptProperties().setProperty("timestamp", time_now);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function cmcInfo(ticker, type){
+  var cache = CacheService.getScriptCache();
+  var cmc_cache = cache.get("cmc_cache");
+  if (!cmc_cache){
+    checkCache();
+  }
+  try{
+  var cmc = JSON.parse(cmc_cache);
+  } catch(err)
+  {
+    return "N/A"
+  }
+
+  for (var i=0; i<cmc.length; i++){
+    if (ticker == cmc[i].symbol){
+      var tokenId = cmc[i].id;
+      var tokenData = cmcTokenData(tokenId, type);
+    }
+  }
+  if (tokenData){
+    return tokenData;
+  }
+    return "Unknown";
+}
+
+function cmcTokenData(id, type){
+  var cmc_id = "https://api.coinmarketcap.com/v2/ticker/"+id+"/";
+  var cmcData = UrlFetchApp.fetch(cmc_id)
+  var cmcString = cmcData.getContentText();
+  try{
+    var cmc_array = JSON.parse(cmcString);
+  } 
+    catch(err)
+  {
+    return "N/A"
+  }
+  
+  var dataCat = {
+    cmc_id : id,
+    cmc_vol : cmc_array.data.quotes.USD.volume_24h,
+    cmc_cap : cmc_array.data.quotes.USD.market_cap,
+    cmc_price : cmc_array.data.quotes.USD.price,
+    cmc_7d: cmc_array.data.quotes.USD.percent_change_7d,
+    cmc_24h : cmc_array.data.quotes.USD.percent_change_24h,
+    cmc_max_supply : cmc_array.data.max_supply,
+    cmc_total_supply : cmc_array.data.total_supply,
+    cmc_circ : cmc_array.data.circulating_supply,
+    rank : cmc_array.data.rank,
+    slug : cmc_array.data.website_slug
+  };
+  if (dataCat[type]){
+    return dataCat[type];
+  } else {
+    return "Unknown";
+  }
+}
+
+function getCmcUrl(cmcId){
+   var webSlug = cmcTokenData(cmcId, "slug");
+   var url = "https://coinmarketcap.com/currencies/" + webSlug;
+   return url;
+}
+
+
+
+
